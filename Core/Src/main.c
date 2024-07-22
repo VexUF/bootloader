@@ -42,6 +42,7 @@
 #define BUFFER_SIZE 2048 // 2KB buffer
 #define START_SECTOR FLASH_SECTOR_2 // use FLASH_SECTOR_2 for release and FLASH_SECTOR_3 for debug
 #define NR_OF_SECTORS 4 // End sector is 5. This is the number of sectors to erase
+#define MAX_FILE_SIZE 229376 //224KBs
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -222,28 +223,30 @@ int main(void)
 		res = f_open(&file, FILENAME, FA_READ);
 		if (res == FR_OK) {
 			fileSize = f_size(&file);
-			toggleIndicator(PIN_INFO, 150, 5);
-			if (flashFirmwareInChunks(&file, fileSize) == HAL_OK) {
-				f_close(&file);
-
-				// Delete the firmware file from SD Card.
-				f_unlink(FILENAME);
-
-				// Show the Success LED Sequence.
+			if (fileSize <= MAX_FILE_SIZE) {
 				toggleIndicator(PIN_INFO, 150, 5);
-				HAL_Delay(1000);
+				if (flashFirmwareInChunks(&file, fileSize) == HAL_OK) {
+					f_close(&file);
+
+					// Delete the firmware file from SD Card.
+					f_unlink(FILENAME);
+
+					// Show the Success LED Sequence.
+					toggleIndicator(PIN_INFO, 150, 5);
+					HAL_Delay(1000);
 
 
-				// Show the End LED sequence.
-				toggleIndicator(PIN_INFO, 50, 1);
-				toggleIndicator(PIN_WARN, 50, 1);
-				toggleIndicator(PIN_ERROR, 50, 1);
+					// Show the End LED sequence.
+					toggleIndicator(PIN_INFO, 50, 1);
+					toggleIndicator(PIN_WARN, 50, 1);
+					toggleIndicator(PIN_ERROR, 50, 1);
 
-				// Turn the SD Card LED off.
-				HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
+					// Turn the SD Card LED off.
+					HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
 
 
-				jumpToApplication();
+					jumpToApplication();
+				}
 	    	}
 			f_close(&file);
 	    }
