@@ -665,7 +665,7 @@ Disassembly of section .text:
  8000814:	bb98      	cbnz	r0, 800087e <main+0xda>
  8000816:	9c03      	ldr	r4, [sp, #12]
  8000818:	2205      	movs	r2, #5
- 800081a:	2132      	movs	r1, #50	@ 0x32
+ 800081a:	2196      	movs	r1, #150	@ 0x96
  800081c:	2002      	movs	r0, #2
  800081e:	f7ff fee7 	bl	80005f0 <toggleIndicator>
  8000822:	4621      	mov	r1, r4
@@ -678,32 +678,32 @@ Disassembly of section .text:
  8000834:	481a      	ldr	r0, [pc, #104]	@ (80008a0 <main+0xfc>)
  8000836:	f004 f897 	bl	8004968 <f_unlink>
  800083a:	2205      	movs	r2, #5
- 800083c:	2132      	movs	r1, #50	@ 0x32
+ 800083c:	2196      	movs	r1, #150	@ 0x96
  800083e:	2002      	movs	r0, #2
  8000840:	f7ff fed6 	bl	80005f0 <toggleIndicator>
  8000844:	f44f 707a 	mov.w	r0, #1000	@ 0x3e8
  8000848:	f000 fa16 	bl	8000c78 <HAL_Delay>
- 800084c:	4812      	ldr	r0, [pc, #72]	@ (8000898 <main+0xf4>)
- 800084e:	4622      	mov	r2, r4
- 8000850:	2108      	movs	r1, #8
- 8000852:	f000 fead 	bl	80015b0 <HAL_GPIO_WritePin>
+ 800084c:	2201      	movs	r2, #1
+ 800084e:	2132      	movs	r1, #50	@ 0x32
+ 8000850:	2002      	movs	r0, #2
+ 8000852:	f7ff fecd 	bl	80005f0 <toggleIndicator>
  8000856:	2201      	movs	r2, #1
- 8000858:	2132      	movs	r1, #50	@ 0x32
- 800085a:	2002      	movs	r0, #2
+ 8000858:	4610      	mov	r0, r2
+ 800085a:	2132      	movs	r1, #50	@ 0x32
  800085c:	f7ff fec8 	bl	80005f0 <toggleIndicator>
  8000860:	2201      	movs	r2, #1
- 8000862:	4610      	mov	r0, r2
- 8000864:	2132      	movs	r1, #50	@ 0x32
+ 8000862:	2132      	movs	r1, #50	@ 0x32
+ 8000864:	4620      	mov	r0, r4
  8000866:	f7ff fec3 	bl	80005f0 <toggleIndicator>
- 800086a:	2201      	movs	r2, #1
- 800086c:	2132      	movs	r1, #50	@ 0x32
- 800086e:	4620      	mov	r0, r4
- 8000870:	f7ff febe 	bl	80005f0 <toggleIndicator>
+ 800086a:	480b      	ldr	r0, [pc, #44]	@ (8000898 <main+0xf4>)
+ 800086c:	4622      	mov	r2, r4
+ 800086e:	2108      	movs	r1, #8
+ 8000870:	f000 fe9e 	bl	80015b0 <HAL_GPIO_WritePin>
  8000874:	f7ff ff30 	bl	80006d8 <jumpToApplication>
  8000878:	4668      	mov	r0, sp
  800087a:	f004 f864 	bl	8004946 <f_close>
  800087e:	2205      	movs	r2, #5
- 8000880:	2132      	movs	r1, #50	@ 0x32
+ 8000880:	2196      	movs	r1, #150	@ 0x96
  8000882:	2000      	movs	r0, #0
  8000884:	f7ff feb4 	bl	80005f0 <toggleIndicator>
  8000888:	4803      	ldr	r0, [pc, #12]	@ (8000898 <main+0xf4>)

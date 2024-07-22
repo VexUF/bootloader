@@ -222,7 +222,7 @@ int main(void)
 		res = f_open(&file, FILENAME, FA_READ);
 		if (res == FR_OK) {
 			fileSize = f_size(&file);
-			toggleIndicator(PIN_INFO, 50, 5);
+			toggleIndicator(PIN_INFO, 150, 5);
 			if (flashFirmwareInChunks(&file, fileSize) == HAL_OK) {
 				f_close(&file);
 
@@ -230,15 +230,17 @@ int main(void)
 				f_unlink(FILENAME);
 
 				// Show the Success LED Sequence.
-				toggleIndicator(PIN_INFO, 50, 5);
+				toggleIndicator(PIN_INFO, 150, 5);
 				HAL_Delay(1000);
-				// Turn the SD Card LED off.
-				HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
+
 
 				// Show the End LED sequence.
 				toggleIndicator(PIN_INFO, 50, 1);
 				toggleIndicator(PIN_WARN, 50, 1);
 				toggleIndicator(PIN_ERROR, 50, 1);
+
+				// Turn the SD Card LED off.
+				HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
 
 
 				jumpToApplication();
@@ -249,7 +251,7 @@ int main(void)
 	}
 
 	// Reaching this code means there was an error.
-	toggleIndicator(PIN_ERROR, 50, 5);
+	toggleIndicator(PIN_ERROR, 150, 5);
 	// Turn the SD Card LED off.
 	HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
 	jumpToApplication();
