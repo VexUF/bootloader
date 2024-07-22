@@ -63,6 +63,8 @@ void Error_Handler(void);
 #define Warn_GPIO_Port GPIOC
 #define Info_Pin GPIO_PIN_2
 #define Info_GPIO_Port GPIOC
+#define sd_led_Pin GPIO_PIN_3
+#define sd_led_GPIO_Port GPIOC
 #define Boot1_Pin GPIO_PIN_2
 #define Boot1_GPIO_Port GPIOB
 #define SDIO_Det_Pin GPIO_PIN_15
