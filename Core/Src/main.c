@@ -26,7 +26,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,12 +37,21 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define FILENAME "vexuf_fw.bin"
+#define APPLICATION_ADDRESS 0x08008000 // Address after 32KB (0x8000)
+#define BUFFER_SIZE 2048 // 2KB buffer
+#define START_SECTOR FLASH_SECTOR_2 // use FLASH_SECTOR_2 for release and FLASH_SECTOR_3 for debug
+#define NR_OF_SECTORS 4 // End sector is 5. This is the number of sectors to erase
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+// Enum for pin types
+typedef enum {
+    PIN_ERROR,
+    PIN_WARN,
+    PIN_INFO
+} PinType;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -53,12 +63,107 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+int isBoot1High(void);
+int flashFirmwareInChunks(FIL *file, uint32_t fileSize);
+void jumpToApplication(void);
+void toggleIndicator(PinType pinType, int delay, int times);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int isBoot1High(void) {
+    return HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET;
+}
 
+void toggleIndicator(PinType pinType, int delay, int times) {
+    uint16_t pin;
+    GPIO_TypeDef *port = GPIOC;
+
+    // Determine which pin to toggle based on pinType
+    switch (pinType) {
+        case PIN_ERROR:
+            pin = Error_Pin;
+            break;
+        case PIN_WARN:
+            pin = Warn_Pin;
+            break;
+        case PIN_INFO:
+            pin = Info_Pin;
+            break;
+        default:
+            return; // Invalid pinType, exit function
+    }
+
+    for (int i = 0; i < times * 2; i++) {
+        HAL_GPIO_TogglePin(port, pin);
+        HAL_Delay(delay);
+    }
+    HAL_Delay(delay * 4);
+
+}
+
+
+
+int flashFirmwareInChunks(FIL *file, uint32_t fileSize) {
+	FLASH_EraseInitTypeDef EraseInitStruct;
+	uint32_t SectorError;
+	uint8_t buffer[BUFFER_SIZE];
+	uint32_t bytesRead = 0;
+	UINT readBytes;
+	uint32_t address = APPLICATION_ADDRESS;
+
+	toggleIndicator(PIN_WARN, 30, 3);
+	HAL_FLASH_Unlock();
+
+	//Erase the application sectors in the flash memory
+	EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;
+	EraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+	EraseInitStruct.Sector = START_SECTOR; //Specify start sector number
+	EraseInitStruct.NbSectors = NR_OF_SECTORS; //Specify num of sectors
+	int res = HAL_FLASHEx_Erase(&EraseInitStruct, &SectorError);
+
+	if (res != HAL_OK) {
+		HAL_FLASH_Lock();
+		return HAL_ERROR;
+	}
+
+	// Write the new firmware in chunks
+	while (bytesRead < fileSize) {
+		FRESULT res = f_read(file, buffer, BUFFER_SIZE, &readBytes);
+		if (res != FR_OK || readBytes == 0) {
+			HAL_FLASH_Lock();
+			return HAL_ERROR;
+		}
+
+		for (uint32_t i = 0; i < readBytes; i += 4) {
+			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address + i, *(uint32_t *)(buffer + i)) != HAL_OK) {
+				HAL_FLASH_Lock();
+				return HAL_ERROR;
+			}
+		}
+
+		address += readBytes;
+		bytesRead += readBytes;
+		toggleIndicator(PIN_WARN, 30, 3);
+	}
+
+	HAL_FLASH_Lock();
+	return HAL_OK;
+}
+
+void jumpToApplication(void) {
+	uint32_t appJumpAddress = *(__IO uint32_t *)(APPLICATION_ADDRESS + 4);
+	void (*appResetHandler)(void) = (void (*)(void))appJumpAddress;
+
+    // Deinitialize peripherals and system to reset state
+	HAL_DeInit();
+	 // Set the vector table to the application location
+	SCB->VTOR = APPLICATION_ADDRESS;
+	// Set the stack pointer
+	__set_MSP(*(__IO uint32_t *)APPLICATION_ADDRESS);
+	// Jump to application reset handler
+	appResetHandler();
+}
 /* USER CODE END 0 */
 
 /**
@@ -95,17 +200,69 @@ int main(void)
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
+	if (!isBoot1High()) {
+		jumpToApplication();
+	}
+	// Turn on the SD Card Led before accessing the SD Card.
+	HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_SET);
 
+	// Show the Start LED sequence.
+	toggleIndicator(PIN_ERROR, 50, 1);
+	toggleIndicator(PIN_WARN, 50, 1);
+	toggleIndicator(PIN_INFO, 50, 1);
+
+	FIL file;
+	FRESULT res;
+	uint32_t fileSize;
+	FATFS FatFs;
+
+	res = f_mount(&FatFs, SDPath, 1);
+
+	if (res == FR_OK) {
+		res = f_open(&file, FILENAME, FA_READ);
+		if (res == FR_OK) {
+			fileSize = f_size(&file);
+			toggleIndicator(PIN_INFO, 50, 5);
+			if (flashFirmwareInChunks(&file, fileSize) == HAL_OK) {
+				f_close(&file);
+
+				// Delete the firmware file from SD Card.
+				f_unlink(FILENAME);
+
+				// Show the Success LED Sequence.
+				toggleIndicator(PIN_INFO, 50, 5);
+				HAL_Delay(1000);
+				// Turn the SD Card LED off.
+				HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
+
+				// Show the End LED sequence.
+				toggleIndicator(PIN_INFO, 50, 1);
+				toggleIndicator(PIN_WARN, 50, 1);
+				toggleIndicator(PIN_ERROR, 50, 1);
+
+
+				jumpToApplication();
+	    	}
+			f_close(&file);
+	    }
+
+	}
+
+	// Reaching this code means there was an error.
+	toggleIndicator(PIN_ERROR, 50, 5);
+	// Turn the SD Card LED off.
+	HAL_GPIO_WritePin(sd_led_GPIO_Port, sd_led_Pin, GPIO_PIN_RESET);
+	jumpToApplication();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 

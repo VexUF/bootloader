@@ -48,7 +48,6 @@ void MX_SDIO_SD_Init(void)
 		HAL_SD_ConfigWideBusOperation(&hsd, SDIO_BUS_WIDE_4B);
 	}
   /* USER CODE END SDIO_Init 1 */
-
   /* USER CODE BEGIN SDIO_Init 2 */
 
   /* USER CODE END SDIO_Init 2 */
